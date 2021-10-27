@@ -1,0 +1,256 @@
+--1. Show all customers whose last names start with T. Order them by first name from A-Z.
+SELECT *
+FROM customer
+WHERE last_name LIKE 'T%'
+ORDER BY first_name;
+
+SELECT first_name, last_name
+FROM customer
+WHERE last_name LIKE 'T%'
+ORDER BY first_name;
+
+--All columns are selected from the 'customer' table and only records that have last names
+--starting with 'T' are displayed after being ordered by 'first_name'. The records are ordered by
+--first name from A-Z by default which is considered ascending. The 2nd query displays only the
+--names columns which refers to customers.
+
+--2. Show all rentals returned from 5/28/2005 to 6/1/2005
+SELECT *
+FROM rental
+WHERE return_date
+BETWEEN '2005-05-28' AND '2005-06-01';
+--All columns/feilds are selected from the 'rental' table and only records that are between 
+--the rental dates 2005-05-28' AND '2005-06-01 are displayed.
+
+--3.How would you determine which movies are rented the most?
+CREATE VIEW quest_3 AS
+SELECT title, rental_date
+FROM film
+INNER JOIN inventory
+ON film.film_id = inventory.film_id
+INNER JOIN rental
+ON inventory.inventory_id = rental.inventory_id;
+
+--A view of the table, quest_3, (with the following conditions) is created: title and 
+--rental_date columns are selected from two separate tables (film, rental) 
+--which have been combined using 2 inner joins-->1st, the table film is connected with
+--the inventory table on a common column (film_id). Then, table rental is connected with inventory
+--table on inventory_id column. This allows all 3 tables to be conncted which is how 2 columns
+--from two separate tables are then selected.
+
+SELECT COUNT(title) AS times_rented, title
+FROM quest_3
+GROUP BY title
+ORDER BY times_rented;
+
+--Quest_3 is grouped by title column which groups the same titles together. This allows me to use
+--the count function on the grouped title which I have aliased as 'times_rented'. This will 
+--return the amount of times each title is repeated. Title column is also selected. The query is
+--ordered by the count (times_rented) in ascending order which will display the count of movies 
+--starting with the ones rented the most 
+
+--4.Show how much each customer spent on movies (for all time) . Order them from least to most.
+
+CREATE VIEW quest_4 AS
+SELECT CONCAT(first_name,' ',last_name) AS full_name, payment.amount AS spent
+FROM customer
+INNER JOIN payment
+ON customer.customer_id = payment.customer_id
+ORDER BY amount;
+
+--A view of the table, quest_4, (with the following conditions) is created: 2 columns 
+--are selected from two separate tables (customer, payment) 
+--which have been combined using an inner join-->the two tables are connected on a common column
+--(customer_id). This allows the 2 columns from two separate tables to be selected--> 
+--first and last name columns are selected from customer which have been combined into 1 column 
+--using concat and then aliased as full_name. Amount column is selected from payment 
+--and is aliased as spent. The quest_4 table is ordered in ascending order by amount. 
+
+SELECT full_name, SUM(spent) AS total_spent
+FROM quest_4
+GROUP BY full_name
+ORDER BY total_spent;
+
+--Quest_4 is grouped by full_name which groups the same names together which allows me to use the 
+--sum function to see how much each customer spent in total which is aliased as total_spent. 
+--Full_name is also selected. The table is then ordered in ascending order by total_spent which
+--will start off with displayng the people who spent the least amount of money. 
+
+--5.Which actor was in the most movies in 2006 (based on this dataset)? 
+    --Be sure to alias the actor name and count as a more descriptive name. 
+	--Order the results from most to least.
+		
+CREATE VIEW quest_5 AS
+SELECT title, release_year, film_actor.actor_id, CONCAT(first_name,' ',last_name) AS full_name
+FROM film
+INNER JOIN film_actor
+ON film.film_id = film_actor.film_id
+INNER JOIN actor
+ON film_actor.actor_id = actor.actor_id;
+
+--A view of the table, quest_5, (with the following conditions) is created: 4 columns 
+--are selected from separate tables (film, actor) 
+--This allows the 4 columns from two separate tables to be selected--> 
+--Title ad release year are from film and first/last names columns concated as 1 column 
+--(full name) are from actor. 
+
+SELECT COUNT (full_name), full_name
+FROM quest_5
+WHERE release_year = 2006
+GROUP BY full_name
+ORDER BY (count (full_name));
+
+--Quest_5 is grouped by full_name which groups the same names together which allows me to use the 
+--count function to see how many times each name is repeated. 
+--Full_name is also selected. The table is then ordered in ascending order by the count of people.
+
+--6.Write an explain plan for 4 and 5. Show the queries and explain what is happening in each one. 
+
+--QUESTION 4
+EXPLAIN
+SELECT full_name, SUM(spent) AS total_spent
+FROM quest_4
+GROUP BY full_name
+ORDER BY total_spent;	
+
+--QUESTION 5
+EXPLAIN
+SELECT COUNT (full_name), full_name
+FROM quest_5
+WHERE release_year = 2006
+GROUP BY full_name
+ORDER BY (count (full_name));
+
+--7.What is the average rental rate per genre?
+CREATE VIEW quest_7 AS
+SELECT title, rental_rate, film_category.category_id AS Fcategory_id, category.name
+FROM film
+INNER JOIN film_category
+ON film.film_id = film_category.film_id
+INNER JOIN category
+ON film_category.category_id = category.category_id;
+
+--A view of the table, quest_7, (with the following conditions) is created: 
+--4 columns are selected from two separate tables (film, category) 
+--which have been combined using 2 inner joins. The film_category table connects both the film
+--and category tables because it contains commen columns with both. 
+--This allows for the selection of 4 columns from two different tables.
+
+SELECT AVG(rental_rate), name  
+FROM quest_7
+GROUP BY name; 
+
+--Quest_7 is grouped by name which groups together the same names. This allows me to call on AVG
+--function which calculates the avg for each genre(name). The name column is also selected.
+
+--8.How many films were returned late? Early? On time?
+CREATE VIEW quest_8 AS
+SELECT (return_date - rental_date) AS rental_duration2, rental_duration
+FROM rental
+INNER JOIN inventory	
+ON rental.inventory_id = inventory.inventory_id
+INNER JOIN film
+ON inventory.film_id = film.film_id;
+
+--created a view of a table called quest_8 with the following conditions: 3 columns are selected
+--from rental and film tables which are joined by inventory table. 1st rental is connected to
+--inventory through inventory_id, then film is connected with inventory through film_id. 
+--This allows me to select the 3 columns--> values in return_date column are subtracted by 
+--values in the rental_date column and the result is aliased as rental_duration2.
+--rental_duration is also selected. 
+
+CREATE VIEW quest_8v2 AS
+SELECT EXTRACT(DAY FROM rental_duration2) AS rental_time, rental_duration
+FROM quest_8;
+
+--created a view of a table called quest_8v2 with information from quest_8:
+--the 'day' datatype is extracted from the rental_duration2 column(interval) and aliased as
+--rental_time. Rental_duration is also selected.
+
+CREATE VIEW quest_8v3 AS
+SELECT *,
+    CASE WHEN rental_time > rental_duration THEN 'late'
+    	WHEN rental_time < rental_duration  THEN 'early'
+        ELSE 'on time' END
+        AS rental_status
+FROM quest_8v2;
+
+--created a view of a table called quest_8v3 with information from quest_8v2:
+--the case command is called: when the values in rental_time is greater than the values in
+--rental_duration then 'late' is printed in a new column called rental_status. When values in
+--rental_time is less than the values in rental_duration then 'early' is printed in the 
+--new column, rental_status. All other values will have the corresponding values of 'on time'. 
+--the end indicates that the case command has ended
+
+CREATE VIEW rental_status_table AS
+SELECT COUNT(rental_status) AS rental_status_count, rental_status
+FROM quest_8v3
+GROUP BY rental_status;
+
+--A view is created to see a display of the results using information from quest_8v3. 
+--The table, rental_status_table, is grouped by rental_status which allows me to take a count of
+--rental status which will indicate how may films were on time, late and early. I also selected
+--rental_status. 
+
+
+--9.What categories are the most rented and what are their total sales?
+
+CREATE VIEW quest_9 AS
+SELECT category.name as genre, rental_duration, amount
+FROM category
+INNER JOIN film_category	
+ON category.category_id = film_category.category_id
+INNER JOIN film
+ON film_category.film_id = film.film_id
+INNER JOIN inventory
+ON film.film_id = inventory.film_id
+INNER JOIN customer
+ON inventory.store_id = customer.store_id
+INNER JOIN payment
+ON customer.customer_id = payment.customer_id;
+
+--A view is created of quest_9: 3 columns are selected from 3 different tables 
+--(category, film, payment). Five inner joins connected the 3 tables which allows the 3 columns 
+--(name aliased as genre, rental_duration, amount) to be selected.
+--1st: category and film are JOINED by film_category ON two connecting columns,
+--category_id and film_id.
+--2nd: film is connected to payment through 3 inner joins. Film is JOINED with inventory ON
+--film_id, inventory is JOINED with customer ON store_id and finally customer is JOINED with 
+--payment ON customer_id. This process allows all three tables, where columns are selected, to be
+--joined. 
+
+
+SELECT count (genre) AS count_genre, genre, SUM(amount) AS total_sales
+FROM quest_9
+GROUP BY genre
+ORDER BY count_genre DESC;
+
+--A query is created using information from quest_9. 
+--Quest_9 is grouped by genre which allows me to take a count of each genre 
+--aliased as count_genre. The sum of amount allows me to see the total sales for each genre
+--aliased as total_sales (which would not be possible if I did not group by genre). 
+--The genre column is also selected. The table is ordered in descending order because we want to
+--see the sales for the most rented.
+
+--10.Create a view for 8 and a view for 9. Be sure to name them appropriately. 
+--For number 8
+CREATE VIEW rental_status_table AS
+SELECT COUNT(rental_status) AS rental_status_count, rental_status
+FROM quest_8v3
+GROUP BY rental_status;
+
+--Refer to question 8
+
+--For number 9
+CREATE VIEW most_rented_genre AS
+SELECT count (genre) AS count_genre, genre, SUM(amount) AS total_sales
+FROM quest_9
+GROUP BY genre
+ORDER BY count_genre DESC;
+
+--Refer to question 9
+
+--Bonus:
+--Write a query that shows how many films were rented each month. Group them by category and month. 
+
+
